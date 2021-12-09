@@ -48,3 +48,5 @@ hapi.properties
 configs/shr/.env
 configs/opencr-hapi/.env
 
+*_bkp.json
+

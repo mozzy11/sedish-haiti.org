@@ -11,7 +11,7 @@
     "api": {
       "username": "root@openhim.org",
       "password": "openhim",
-      "apiURL": "https://openhim-core:8080",
+      "apiURL": "https://192.168.1.59:8080",
       "trustSelfSigned": true,
       "urn": "urn:mediator:haiti_clientregistry"
     },
@@ -81,7 +81,7 @@
     }
   },
   "sync": {
-    "lastFHIR2ESSync": "2021-12-08T04:54:09"
+    "lastFHIR2ESSync": "2021-12-09T19:08:17"
   },
   "__comments": {
     "matching.tool": "this tells if the app should use mediator algorithms or elasticsearch algorithms for matching, two options mediator and elasticsearch"
