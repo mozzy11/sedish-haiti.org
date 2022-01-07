@@ -13,19 +13,15 @@
       "password": "openhim",
       "apiURL": "https://openhim-core:8080",
       "trustSelfSigned": true,
-      "urn": "urn:mediator:haiti_clientregistry"
+      "urn": ""
     },
     "register": true
   },
   "fhirServer": {
-    "username": "hapi",
-    "password": "hapi",
     "baseURL": "http://opencr-fhir:8080/fhir"
   },
   "elastic": {
     "server": "http://es:9200",
-    "username": "",
-    "password": "",
     "max_compilations_rate": "10000/1m",
     "index": "patients"
   },
@@ -36,24 +32,6 @@
     "uri": "http://openclientregistry.org/fhir",
     "reportRelationship": "patientreport"
   },
-  "clients": [
-    {
-      "id": "openmrs",
-      "displayName": "OpenMRS"
-    },
-    {
-      "id": "dhis2",
-      "displayName": "DHIS2"
-    },
-    {
-      "id": "lims",
-      "displayName": "Lab Info Management System"
-    },
-    {
-      "id": "cr",
-      "displayName": "Client Registry"
-    }
-  ],
   "matching": {
     "tool": "elasticsearch"
   },
@@ -64,17 +42,16 @@
         "http://health.go.ug/cr/internalid",
         "http://clientregistry.org/openmrs",
         "urn:ietf:rfc:3986",
-        "LOCAL",
-        "http://isanteplus.org/openmrs/fhir2/3-isanteplus-id"
+        "LOCAL"
       ],
       "displayName": "Internal ID"
     },
     "nationalid": {
-      "uri": "http://isanteplus.org/openmrs/fhir2/5-code-national",
+      "uri": "http://health.go.ug/cr/natioanlid",
       "displayName": "National ID"
     },
     "artnumber": {
-      "uri": "http://isanteplus.org/openmrs/fhir2/5-code-national",
+      "uri": "http://health.go.ug/cr/artnumber",
       "displayName": "ART Number"
     },
     "brokenMatch": {
@@ -82,7 +59,7 @@
     }
   },
   "sync": {
-    "lastFHIR2ESSync": "2022-01-06T19:34:13"
+    "lastFHIR2ESSync": "2021-10-14T18:31:24"
   },
   "__comments": {
     "matching.tool": "this tells if the app should use mediator algorithms or elasticsearch algorithms for matching, two options mediator and elasticsearch"
