@@ -1,13 +1,13 @@
-version: "3.8"
+version: '3.9'
 
 ## Port Assignments:
 ##  See .env file
 
-## Container debugging:
-# 1. append the following lines to desired container
+## Container debugging: 
+# 1. append the following lines to desired container 
 # 2. boot up the container using `docker-compose up -d`
 # 3 run `docker exec -it <container-name> bash` to start interactive shell
-#
+# 
 #    tty: true
 #    stdin_open: true
 #    entrypoint: bash
@@ -21,52 +21,40 @@ services:
   # TODO: set up to use non-root user. See https://www.rockyourcode.com/run-docker-nginx-as-non-root-user/
   ###
   nginx:
+    profiles: ['main']
     image: nginx:latest
     container_name: nginx
     hostname: nginx
     restart: unless-stopped
     ports:
-      - "80:80" # OpenHIM Console
-      - "443:443" # OpenHIM Console
-      - "8080:8080" # OpenHIM Core API
-      - "5000:5000" # OpenHIM HTTPS
-      - "5001:5001" # OpenHIM HTTP
-      - "3000:3000" # OpenCR
-      - "8000:8000" # iSantePlus
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./configs/nginx/nginx.ports.conf:/etc/nginx/nginx.conf
+      - certs:/etc/letsencrypt
+      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf
       - nginx-data:/var/www
-      - ./configs/nginx/healthcheck.sh:/healthcheck.sh
-      - certs:/etc/ssl/
     networks:
       - sedish
-    healthcheck:
-      test: ["CMD-SHELL", "/healthcheck.sh"]
-      interval: 10s
-      timeout: 1m
-      retries: 100
-      start_period: 3m
-  certgen:
-    image: magnitus/certificate-generator:latest
+
+  certbot:
+    profiles: ['main']
+    image: certbot/dns-route53
+    container_name: certbot
+    entrypoint: "certbot certonly -n --agree-tos --email pmanko@uw.edu -d sedish-haiti.org -d '*.sedish-haiti.org' --dns-route53 --preferred-challenges=dns"
     environment:
-      COUNTRY: US
-      STATE: WA
-      CITY: SEATTLE
-      ORGANIZATION: I-TECH-UW
-      DEPARTMENT: DIGI
-      EMAIL: cert@sedish-heaiti.org
-      DOMAINS: dev.mydomain.com;test.mydomain.com;localhost
-      CERTIFICATE_DURATION: 11095
-      OUTPUT_CERTIFICATE_INFO: "true"
-      KEY_FILE: "ports.key"
-      CERTIFICATE_FILE: "ports.crt"
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
     volumes:
-      - certs:/opt/output
+    - certs:/etc/letsencrypt
+    - letsencrypt:/var/lib/letsencrypt
+    networks:
+    - sedish
+
   ###
   # OpenCR
   ###
   opencr:
-    platform: linux/amd64
+    profiles: ['main']
     container_name: opencr
     hostname: opencr
     image: intrahealth/opencr:latest
@@ -77,10 +65,12 @@ services:
     networks:
       - sedish
     volumes:
-      - ./configs/opencr/config_ports.json:/src/server/config/config_docker.json
-      - ./configs/opencr/mediator_ports.json:/src/server/config/mediator.json
+      - ./configs/opencr/config.json:/src/server/config/config_docker.json
+      - ./configs/opencr/mediator.json:/src/server/config/mediator.json
       - ./configs/opencr/decisionRules.json:/src/server/config/decisionRules.json
+  
   opencr-fhir:
+    profiles: ['main']
     image: "hapiproject/hapi:latest"
     container_name: opencr-fhir
     hostname: opencr-fhir
@@ -91,8 +81,9 @@ services:
       - /data/hapi
     networks:
       - sedish
-
+  
   opencr-es:
+    profiles: ['main']
     container_name: es
     hostname: es
     image: intrahealth/elasticsearch:latest
@@ -103,7 +94,7 @@ services:
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
-      - esdata:/usr/share/elasticsearch/data
+      - es-data:/usr/share/elasticsearch/data
     networks:
       - sedish
 
@@ -111,6 +102,7 @@ services:
   # SHR
   ###
   shr:
+    profiles: ['main']
     container_name: shr
     hostname: shr
     image: ghcr.io/i-tech-uw/shared-health-record:v0.4.3
@@ -120,39 +112,27 @@ services:
     networks:
       - sedish
     volumes:
-      - ./configs/shr/config_ports.json:/app/config/config_docker.json
-      - ./configs/shr/mediator_ports.json:/app/config/mediator_docker.json
-
+      - ./configs/shr/config.json:/app/config/config_docker.json
+      - ./configs/shr/mediator.json:/app/config/mediator_docker.json
+  
   shr-fhir:
+    profiles: ['main']
     image: "hapiproject/hapi:latest"
     container_name: shr-fhir
     hostname: shr-fhir
     restart: unless-stopped
     volumes:
-      - /data/hapi
+      - hapi-data:/data/hapi
     networks:
       - sedish
     env_file:
       - configs/shr/.env
-  ####
-  # DBs
-  ###
 
-  postgres:
-    image: postgres
-    container_name: postgres
-    hostname: postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: ${PG_PW}
-      POSTGRES_DB: opencr
-    volumes:
-      - pg-data:/var/lib/postgresql/data/
-  
   ####
   # Kafka
   ###
   zookeeper:
+    profiles: ['main']
     image: "bitnami/zookeeper:latest"
     hostname: zookeeper
     environment:
@@ -160,6 +140,7 @@ services:
     networks:
       - sedish
   kafka:
+    profiles: ['main']
     image: "bitnami/kafka:latest"
     hostname: kafka
     container_name: kafka
@@ -176,11 +157,12 @@ services:
       - zookeeper
     networks:
       - sedish
-
+  
   ###
   # iSantePlus
   ###
   isanteplus:
+    profiles: ['main']
     container_name: isanteplus
     hostname: isanteplus
     image: ghcr.io/isanteplus/docker-isanteplus-server:${ISANTEPLUS_DOCKER_VERSION}
@@ -189,14 +171,16 @@ services:
       - ./configs/isanteplus/isanteplus.env
     volumes:
       - isanteplus-data:/openmrs/data
+      - ./configs/isanteplus/custom_modules:/custom_modules
     networks:
       - sedish
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"
+        max-size: "10m"      
 
   isanteplus-mysql:
+    profiles: ['main']
     image: ghcr.io/isanteplus/docker-isanteplus-db:${ISANTEPLUS_DB_VERSION}
     command: mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --sql_mode=""
     restart: unless-stopped
@@ -212,14 +196,15 @@ services:
       - MYSQL_ROOT_HOST=% # Allow docker containers to connect to mysql
     volumes:
       - ./configs/isanteplus/mysql.cnf:/etc/mysql/conf.d/custom.cnf # mysql config preconfigured to allow binlog/debezium
-      - isanteplus-db-data-alt:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
     networks:
-    - sedish
+      - sedish
 
   ###
   # OpenHIM
   ###
   openhim-core:
+    profiles: ['main']
     container_name: openhim-core
     image: jembi/openhim-core:latest
     restart: unless-stopped
@@ -236,11 +221,12 @@ services:
       - sedish
 
   openhim-console:
+    profiles: ['main']
     container_name: openhim-console
     image: jembi/openhim-console:latest
     restart: unless-stopped
     volumes:
-      - ./configs/openhim-console/ports.json:/usr/share/nginx/html/config/default.json
+      - ./configs/openhim-console/default.json:/usr/share/nginx/html/config/default.json
     healthcheck:
       test: "curl -sS http://openhim-console || exit 1"
       interval: 30s
@@ -248,7 +234,19 @@ services:
       retries: 3
     networks:
       - sedish
+
+  mongo-db:
+    profiles: ['main']
+    container_name: mongo-db
+    image: mongo:3.4
+    volumes:
+      - "mongo-data:/data/db"
+    restart: unless-stopped
+    networks:
+      - sedish
+
   openhim-config:
+    profiles: ['main']
     container_name: openhim-config
     image: ghcr.io/i-tech-uw/openhim-config:v0.0.0
     volumes:
@@ -259,17 +257,10 @@ services:
       - INITIAL_PW=openhim-password
       - ADMIN_PW=$ADMIN_PW
       - API_URL=https://openhim-core:8080
-  mongo-db:
-    container_name: mongo-db
-    image: mongo:3.4
-    volumes:
-      - "mongo-data:/data/db"
-    restart: unless-stopped
-    networks:
-      - sedish
-
+  
   ## SHR Resource Stream
   streaming-pipeline: 
+    profiles: ['main']
     image: ghcr.io/i-tech-uw/openmrs-fhir-analytics/streaming-binlog:latest
     container_name: streaming-pipeline
     healthcheck:
@@ -295,18 +286,9 @@ services:
     networks:
       - sedish
   
-  # Newman Tests
-  newman:
-    image: postman/newman
-    volumes:
-      - ./.postman:/.postman
-    entrypoint: newman run $POSTMAN_COLLECTION -e /.postman/postman_env.ci.json --insecure --timeout-request 20000 --delay-request 1000
-    networks:
-      - sedish
-  
   # QA Framework
   qa:
-    image: ghcr.io/isanteplus/isanteplus-qaframework:${ISANTEPLUS_QA_VERSION}
+    image: ghcr.io/isanteplus/isanteplus-qaframework::${ISANTEPLUS_QA_VERSION}
     container_name: qa
     environment:
       - ISANTEPLUS_URL=http://isanteplus:8080/openmrs
@@ -320,14 +302,22 @@ services:
     container_name: chrome
     networks:
     - sedish
+
+  # Newman Tests
+  newman:
+    image: postman/newman
+    volumes:
+      - ./.postman:/.postman
+    entrypoint: newman run $POSTMAN_COLLECTION -e /.postman/postman_env.ci.json --insecure --timeout-request 20000 --delay-request 500
+    networks:
+      - sedish
+
 volumes:
-  esdata:
+  es-data:
     driver: local
   isanteplus-data:
     driver: local
-  isanteplus-db-data:
-    driver: local
-  isanteplus-db-data-alt:
+  mysql-data:
     driver: local
   mongo-data:
     driver: local
@@ -335,17 +325,15 @@ volumes:
     driver: local
   hapi-data:
     driver: local
-  cr-data:
+  opencr-data:
     driver: local
   certs:
     driver: local
-  letsencrypt:
+  letsencrypt: 
     driver: local
-  nginx-data:
+  nginx-data: 
     driver: local
   kafka-data1:
-    driver: local
-  pg-data:  
     driver: local
 networks:
   sedish:

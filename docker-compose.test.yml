@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  # Newman Tests
+  newman:
+    image: postman/newman
+    volumes:
+      - ./.postman:/.postman
+    entrypoint: newman run $POSTMAN_COLLECTION -e /.postman/postman_env.ci.json --insecure --timeout-request 20000 --delay-request 1000
+    networks:
+      - sedish
+  
+  # QA Framework
+  qa:
+    image: ghcr.io/isanteplus/isanteplus-qaframework:${ISANTEPLUS_QA_VERSION}
+    container_name: qa
+    environment:
+      - ISANTEPLUS_URL=http://isanteplus:8080/openmrs
+      - ISANTEPLUS_USER=admin
+      - ISANTEPLUS_PW=Admin123
+    networks:
+      - sedish
+  chrome:
+    image: selenium/standalone-chrome
+    hostname: chrome
+    container_name: chrome
+    networks:
+    - sedish
