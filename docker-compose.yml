@@ -198,8 +198,8 @@ services:
         max-size: "10m"
     labels:
       - traefik.enable=true
-      - traefik.http.routers.myapp.tls=true
-      - traefik.http.routers.myapp.rule=Host("isanteplus.localhost")
+      - traefik.http.routers.isanteplus.tls=true
+      - traefik.http.routers.isanteplus.rule=Host("isanteplus.localhost")
 
   isanteplus-mysql:
     image: ghcr.io/isanteplus/docker-isanteplus-db:${ISANTEPLUS_DB_VERSION}
@@ -255,11 +255,12 @@ services:
       - traefik.http.routers.http.rule=Host("openhim-http.localhost")
       - traefik.http.routers.http.tls=false
       - traefik.http.routers.http.service=svc_http
-      - traefik.http.services.svc_http.loadbalancer.server.port=5000
+      - traefik.http.services.svc_http.loadbalancer.server.port=5001
     ports:
       - 8080
     volumes:
       - ./configs/openhim-core/healthcheck.js:/healthcheck.js
+      - ./configs/openhim-core/default.js:/app/config/default.js
 
 
   openhim-console:
@@ -275,10 +276,10 @@ services:
       retries: 3
     networks:
       - sedish
-    # labels:
-    #   - traefik.enable=true
-    #   - traefik.http.routers.myapp.tls=true
-    #   - traefik.http.routers.myapp.rule=Host("openhim-console.localhost")
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.openhim-console.tls=true
+      - traefik.http.routers.openhim-console.rule=Host("openhim.localhost")
 
   mongo-db:
     container_name: mongo-db
